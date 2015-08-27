@@ -1,0 +1,668 @@
+﻿{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "webASName": {
+      "type": "string"
+    },
+    "webASLocation": {
+      "type": "string",
+      "defaultValue": "West US",
+      "allowedValues": [
+        "East US",
+        "West US",
+        "West Europe",
+        "East Asia",
+        "South East Asia"
+      ]
+    },
+    "webVMName": {
+      "type": "string"
+    },
+    "webVMAdminUserName": {
+      "type": "string"
+    },
+    "webVMAdminPassword": {
+      "type": "securestring"
+    },
+    "webVMWindowsOSVersion": {
+      "type": "string",
+      "defaultValue": "2012-R2-Datacenter",
+      "allowedValues": [
+        "2008-R2-SP1",
+        "2012-Datacenter",
+        "2012-R2-Datacenter",
+        "Windows-Server-Technical-Preview"
+      ]
+    },
+    "appVMName": {
+      "type": "string"
+    },
+    "appVMAdminUserName": {
+      "type": "string"
+    },
+    "appVMAdminPassword": {
+      "type": "securestring"
+    },
+    "appVMWindowsOSVersion": {
+      "type": "string",
+      "defaultValue": "2012-R2-Datacenter",
+      "allowedValues": [
+        "2008-R2-SP1",
+        "2012-Datacenter",
+        "2012-R2-Datacenter",
+        "Windows-Server-Technical-Preview"
+      ]
+    },
+    "gatewayVMName": {
+      "type": "string"
+    },
+    "gatewayVMAdminUserName": {
+      "type": "string"
+    },
+    "gatewayVMAdminPassword": {
+      "type": "securestring"
+    },
+    "gatewayVMWindowsOSVersion": {
+      "type": "string",
+      "defaultValue": "2012-R2-Datacenter",
+      "allowedValues": [
+        "2008-R2-SP1",
+        "2012-Datacenter",
+        "2012-R2-Datacenter",
+        "Windows-Server-Technical-Preview"
+      ]
+    },
+    "sqlVMName": {
+      "type": "string"
+    },
+    "sqlVMAdminUserName": {
+      "type": "string"
+    },
+    "sqlVMAdminPassword": {
+      "type": "securestring"
+    },
+    "sqlVMWindowsOSVersion": {
+      "type": "string",
+      "defaultValue": "2012-R2-Datacenter",
+      "allowedValues": [
+        "2008-R2-SP1",
+        "2012-Datacenter",
+        "2012-R2-Datacenter",
+        "Windows-Server-Technical-Preview"
+      ]
+    },
+    "publicIPDnsName": {
+      "type": "string"
+    },
+      "appASName": {
+          "type": "string"
+      },
+      "appASLocation": {
+          "type": "string",
+          "defaultValue": "West US",
+          "allowedValues": [
+              "East US",
+              "West US",
+              "West Europe",
+              "East Asia",
+              "South East Asia"
+          ]
+      },
+      "dbASName": {
+          "type": "string"
+      },
+      "dbASLocation": {
+          "type": "string",
+          "defaultValue": "West US",
+          "allowedValues": [
+              "East US",
+              "West US",
+              "West Europe",
+              "East Asia",
+              "South East Asia"
+          ]
+      },
+      "webdiskstorageName": {
+          "type": "string"
+      },
+      "webdiskstorageType": {
+          "type": "string",
+          "defaultValue": "Standard_LRS",
+          "allowedValues": [
+              "Standard_LRS",
+              "Standard_GRS",
+              "Standard_ZRS"
+          ]
+      },
+      "webdiskstorageLocation": {
+          "type": "string",
+          "defaultValue": "West US",
+          "allowedValues": [
+              "East US",
+              "West US",
+              "West Europe",
+              "East Asia",
+              "South East Asia"
+          ]
+      },
+      "appdiskstorageName": {
+          "type": "string"
+      },
+      "appdiskstorageType": {
+          "type": "string",
+          "defaultValue": "Standard_LRS",
+          "allowedValues": [
+              "Standard_LRS",
+              "Standard_GRS",
+              "Standard_ZRS"
+          ]
+      },
+      "appdiskstorageLocation": {
+          "type": "string",
+          "defaultValue": "West US",
+          "allowedValues": [
+              "East US",
+              "West US",
+              "West Europe",
+              "East Asia",
+              "South East Asia"
+          ]
+      },
+      "dbdiskstorageName": {
+          "type": "string"
+      },
+      "dbdiskstorageType": {
+          "type": "string",
+          "defaultValue": "Standard_LRS",
+          "allowedValues": [
+              "Standard_LRS",
+              "Standard_GRS",
+              "Standard_ZRS"
+          ]
+      },
+      "dbdiskstorageLocation": {
+          "type": "string",
+          "defaultValue": "West US",
+          "allowedValues": [
+              "East US",
+              "West US",
+              "West Europe",
+              "East Asia",
+              "South East Asia"
+          ]
+      }
+  },
+  "variables": {
+    "siebelvnetPrefix": "10.0.0.0/16",
+    "siebelvnetSubnet1Name": "Subnet-1",
+    "siebelvnetSubnet1Prefix": "10.0.0.0/24",
+    "siebelvnetSubnet2Name": "Subnet-2",
+    "siebelvnetSubnet2Prefix": "10.0.1.0/24",
+    "webVMImagePublisher": "MicrosoftWindowsServer",
+    "webVMImageOffer": "WindowsServer",
+    "webVMOSDiskName": "webVMOSDisk",
+    "webVMVmSize": "Standard_D1",
+    "webVMVnetID": "[resourceId('Microsoft.Network/virtualNetworks', 'siebelvnet')]",
+    "webVMSubnetRef": "[concat(variables('webVMVnetID'), '/subnets/', variables('siebelvnetSubnet1Name'))]",
+    "webVMStorageAccountContainerName": "vhds",
+    "webVMNicName": "[concat(parameters('webVMName'), 'NetworkInterface')]",
+    "appVMImagePublisher": "MicrosoftWindowsServer",
+    "appVMImageOffer": "WindowsServer",
+    "appVMOSDiskName": "appVMOSDisk",
+    "appVMVmSize": "Standard_D1",
+    "appVMVnetID": "[resourceId('Microsoft.Network/virtualNetworks', 'siebelvnet')]",
+    "appVMSubnetRef": "[concat(variables('appVMVnetID'), '/subnets/', variables('siebelvnetSubnet2Name'))]",
+    "appVMStorageAccountContainerName": "vhds",
+    "appVMNicName": "[concat(parameters('appVMName'), 'NetworkInterface')]",
+    "gatewayVMImagePublisher": "MicrosoftWindowsServer",
+    "gatewayVMImageOffer": "WindowsServer",
+    "gatewayVMOSDiskName": "gatewayVMOSDisk",
+    "gatewayVMVmSize": "Standard_D1",
+    "gatewayVMVnetID": "[resourceId('Microsoft.Network/virtualNetworks', 'siebelvnet')]",
+    "gatewayVMSubnetRef": "[concat(variables('gatewayVMVnetID'), '/subnets/', variables('siebelvnetSubnet3Name'))]",
+    "gatewayVMStorageAccountContainerName": "vhds",
+    "gatewayVMNicName": "[concat(parameters('gatewayVMName'), 'NetworkInterface')]",
+    "sqlVMImagePublisher": "MicrosoftWindowsServer",
+    "sqlVMImageOffer": "WindowsServer",
+    "sqlVMOSDiskName": "sqlVMOSDisk",
+    "sqlVMVmSize": "Standard_D1",
+    "sqlVMVnetID": "[resourceId('Microsoft.Network/virtualNetworks', 'siebelvnet')]",
+    "sqlVMSubnetRef": "[concat(variables('sqlVMVnetID'), '/subnets/', variables('siebelvnetSubnet4Name'))]",
+    "sqlVMStorageAccountContainerName": "vhds",
+    "sqlVMNicName": "[concat(parameters('sqlVMName'), 'NetworkInterface')]",
+    "publicIPName": "publicIP"
+  },
+  "resources": [
+    {
+      "name": "siebelvnet",
+      "type": "Microsoft.Network/virtualNetworks",
+      "location": "[parameters('siebelvnetLocation')]",
+      "apiVersion": "2015-05-01-preview",
+      "dependsOn": [ ],
+      "tags": {
+        "displayName": "siebelvnet"
+      },
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "[variables('siebelvnetPrefix')]"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "[variables('siebelvnetSubnet1Name')]",
+            "properties": {
+              "addressPrefix": "[variables('siebelvnetSubnet1Prefix')]"
+            }
+          },
+          {
+            "name": "[variables('siebelvnetSubnet2Name')]",
+            "properties": {
+              "addressPrefix": "[variables('siebelvnetSubnet2Prefix')]"
+            }
+          },
+          {
+            "name": "[variables('siebelvnetSubnet3Name')]",
+            "properties": {
+              "addressPrefix": "[variables('siebelvnetSubnet2Prefix')]"
+            }
+          },
+          {
+            "name": "[variables('siebelvnetSubnet4Name')]",
+            "properties": {
+              "addressPrefix": "[variables('siebelvnetSubnet2Prefix')]"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "[parameters('webASName')]",
+      "type": "Microsoft.Compute/availabilitySets",
+      "location": "[parameters('webASLocation')]",
+      "apiVersion": "2015-05-01-preview",
+      "dependsOn": [ ],
+      "tags": {
+        "displayName": "webAS"
+      }
+    },
+    {
+      "name": "[variables('webVMNicName')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "location": "[parameters('siebelvnetLocation')]",
+      "apiVersion": "2015-05-01-preview",
+      "dependsOn": [
+        "[concat('Microsoft.Network/virtualNetworks/', 'siebelvnet')]",
+        "[concat('Microsoft.Network/publicIPAddresses/', variables('publicIPName'))]"
+      ],
+      "tags": {
+        "displayName": "webVMNic"
+      },
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[variables('webVMSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPName'))]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "[parameters('webVMName')]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "location": "[parameters('siebelvnetLocation')]",
+      "apiVersion": "2015-05-01-preview",
+      "dependsOn": [
+        "[concat('Microsoft.Storage/storageAccounts/', parameters('webdiskstorageName'))]",
+        "[concat('Microsoft.Network/networkInterfaces/', variables('webVMNicName'))]",
+        "[concat('Microsoft.Compute/availabilitySets/', parameters('webASName'))]"
+      ],
+      "tags": {
+        "displayName": "webVM"
+      },
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[variables('webVMVmSize')]"
+        },
+        "osProfile": {
+          "computername": "[parameters('webVMName')]",
+          "adminUsername": "[parameters('webVMAdminUsername')]",
+          "adminPassword": "[parameters('webVMAdminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "[variables('webVMImagePublisher')]",
+            "offer": "[variables('webVMImageOffer')]",
+            "sku": "[parameters('webVMWindowsOSVersion')]",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "webVMOSDisk",
+            "vhd": {
+              "uri": "[concat('http://', parameters('webdiskstorageName'), '.blob.core.windows.net/', variables('webVMStorageAccountContainerName'), '/', variables('webVMOSDiskName'), '.vhd')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('webVMNicName'))]"
+            }
+          ]
+        },
+        "availabilitySet": {
+          "id": "[resourceId('Microsoft.Web/serverfarms', parameters('webASName')" 
+        }
+      }
+    },
+    {
+      "name": "[variables('appVMNicName')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "location": "[parameters('siebelvnetLocation')]",
+      "apiVersion": "2015-05-01-preview",
+      "dependsOn": [
+        "[concat('Microsoft.Network/virtualNetworks/', 'siebelvnet')]"
+      ],
+      "tags": {
+        "displayName": "appVMNic"
+      },
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[variables('appVMSubnetRef')]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "[parameters('appVMName')]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "location": "[parameters('siebelvnetLocation')]",
+      "apiVersion": "2015-05-01-preview",
+      "dependsOn": [
+        "[concat('Microsoft.Storage/storageAccounts/', parameters('appdiskstorageName'))]",
+        "[concat('Microsoft.Network/networkInterfaces/', variables('appVMNicName'))]",
+        "[concat('Microsoft.Compute/availabilitySets/', parameters('appASName'))]"
+      ],
+      "tags": {
+        "displayName": "appVM"
+      },
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[variables('appVMVmSize')]"
+        },
+        "osProfile": {
+          "computername": "[parameters('appVMName')]",
+          "adminUsername": "[parameters('appVMAdminUsername')]",
+          "adminPassword": "[parameters('appVMAdminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "[variables('appVMImagePublisher')]",
+            "offer": "[variables('appVMImageOffer')]",
+            "sku": "[parameters('appVMWindowsOSVersion')]",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "appVMOSDisk",
+            "vhd": {
+              "uri": "[concat('http://', parameters('appdiskstorageName'), '.blob.core.windows.net/', variables('appVMStorageAccountContainerName'), '/', variables('appVMOSDiskName'), '.vhd')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('appVMNicName'))]"
+            }
+          ]
+        },
+        "availabilitySet": {
+          "id": "[resourceId('Microsoft.Compute/availabilitySets', parameters('webASName')" 
+        }
+      }
+    },
+    {
+      "name": "[variables('gatewayVMNicName')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "location": "[parameters('siebelvnetLocation')]",
+      "apiVersion": "2015-05-01-preview",
+      "dependsOn": [
+        "[concat('Microsoft.Network/virtualNetworks/', 'siebelvnet')]"
+      ],
+      "tags": {
+        "displayName": "gatewayVMNic"
+      },
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[variables('gatewayVMSubnetRef')]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "[parameters('gatewayVMName')]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "location": "[parameters('siebelvnetLocation')]",
+      "apiVersion": "2015-05-01-preview",
+      "dependsOn": [
+        "[concat('Microsoft.Storage/storageAccounts/', parameters('appdiskstorageName'))]",
+        "[concat('Microsoft.Network/networkInterfaces/', variables('gatewayVMNicName'))]"
+      ],
+      "tags": {
+        "displayName": "gatewayVM"
+      },
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[variables('gatewayVMVmSize')]"
+        },
+        "osProfile": {
+          "computername": "[parameters('gatewayVMName')]",
+          "adminUsername": "[parameters('gatewayVMAdminUsername')]",
+          "adminPassword": "[parameters('gatewayVMAdminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "[variables('gatewayVMImagePublisher')]",
+            "offer": "[variables('gatewayVMImageOffer')]",
+            "sku": "[parameters('gatewayVMWindowsOSVersion')]",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "gatewayVMOSDisk",
+            "vhd": {
+              "uri": "[concat('http://', parameters('appdiskstorageName'), '.blob.core.windows.net/', variables('gatewayVMStorageAccountContainerName'), '/', variables('gatewayVMOSDiskName'), '.vhd')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('gatewayVMNicName'))]"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "[variables('sqlVMNicName')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "location": "[parameters('siebelvnetLocation')]",
+      "apiVersion": "2015-05-01-preview",
+      "dependsOn": [
+        "[concat('Microsoft.Network/virtualNetworks/', 'siebelvnet')]"
+      ],
+      "tags": {
+        "displayName": "sqlVMNic"
+      },
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[variables('sqlVMSubnetRef')]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "[parameters('sqlVMName')]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "location": "[parameters('siebelvnetLocation')]",
+      "apiVersion": "2015-05-01-preview",
+      "dependsOn": [
+        "[concat('Microsoft.Storage/storageAccounts/', parameters('dbdiskstorageName'))]",
+        "[concat('Microsoft.Network/networkInterfaces/', variables('sqlVMNicName'))]",
+        "[concat('Microsoft.Compute/availabilitySets/', parameters('dbASName'))]"
+      ],
+      "tags": {
+        "displayName": "sqlVM"
+      },
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[variables('sqlVMVmSize')]"
+        },
+        "osProfile": {
+          "computername": "[parameters('sqlVMName')]",
+          "adminUsername": "[parameters('sqlVMAdminUsername')]",
+          "adminPassword": "[parameters('sqlVMAdminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "[variables('sqlVMImagePublisher')]",
+            "offer": "[variables('sqlVMImageOffer')]",
+            "sku": "[parameters('sqlVMWindowsOSVersion')]",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "sqlVMOSDisk",
+            "vhd": {
+              "uri": "[concat('http://', parameters('dbdiskstorageName'), '.blob.core.windows.net/', variables('sqlVMStorageAccountContainerName'), '/', variables('sqlVMOSDiskName'), '.vhd')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('sqlVMNicName'))]"
+            }
+          ]
+        },
+        "availabilitySet": {
+          "id": "[resourceId('Microsoft.Compute/availabilitySets', parameters('dbASName')" 
+        }
+      }
+    },
+    {
+      "name": "[variables('publicIPName')]",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "location": "[parameters('siebelvnetLocation')]",
+      "apiVersion": "2015-05-01-preview",
+      "dependsOn": [ ],
+      "tags": {
+        "displayName": "publicIP"
+      },
+      "properties": {
+        "publicIPAllocationMethod": "Dynamic",
+        "dnsSettings": {
+          "domainNameLabel": "[parameters('publicIPDnsName')]"
+        }
+      }
+    },
+      {
+          "name": "[parameters('appASName')]",
+          "type": "Microsoft.Compute/availabilitySets",
+          "location": "[parameters('appASLocation')]",
+          "apiVersion": "2015-05-01-preview",
+          "dependsOn": [ ],
+          "tags": {
+              "displayName": "appAS"
+          }
+      },
+      {
+          "name": "[parameters('dbASName')]",
+          "type": "Microsoft.Compute/availabilitySets",
+          "location": "[parameters('dbASLocation')]",
+          "apiVersion": "2015-05-01-preview",
+          "dependsOn": [ ],
+          "tags": {
+              "displayName": "dbAS"
+          }
+      },
+      {
+          "name": "[parameters('webdiskstorageName')]",
+          "type": "Microsoft.Storage/storageAccounts",
+          "location": "[parameters('webdiskstorageLocation')]",
+          "apiVersion": "2015-05-01-preview",
+          "dependsOn": [ ],
+          "tags": {
+              "displayName": "webdiskstorage"
+          },
+          "properties": {
+              "accountType": "[parameters('webdiskstorageType')]"
+          }
+      },
+      {
+          "name": "[parameters('appdiskstorageName')]",
+          "type": "Microsoft.Storage/storageAccounts",
+          "location": "[parameters('appdiskstorageLocation')]",
+          "apiVersion": "2015-05-01-preview",
+          "dependsOn": [ ],
+          "tags": {
+              "displayName": "appdiskstorage"
+          },
+          "properties": {
+              "accountType": "[parameters('appdiskstorageType')]"
+          }
+      },
+      {
+          "name": "[parameters('dbdiskstorageName')]",
+          "type": "Microsoft.Storage/storageAccounts",
+          "location": "[parameters('dbdiskstorageLocation')]",
+          "apiVersion": "2015-05-01-preview",
+          "dependsOn": [ ],
+          "tags": {
+              "displayName": "dbdiskstorage"
+          },
+          "properties": {
+              "accountType": "[parameters('dbdiskstorageType')]"
+          }
+      }
+  ],
+    "outputs": {
+    }
+}
