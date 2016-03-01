@@ -1,0 +1,51 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "adminUsername": {
+      "value": "siebel"
+    },
+    "adminPassword": {
+      "value": "P@ssword"
+    },
+    "dbAdminPassword": {
+      "value": "P@ssword"
+    },
+    "newStorageAccountName": {
+      "value": "siebelartifacts"
+    },
+    "storageAccountType": {
+      "value": "Standard_LRS"
+    },
+    "dnsNameForPublicIP": {
+      "value": "agsiebeltest"
+    },
+    "cstPassword": {
+      "value": "C$tguest"
+    },
+    "ermPassword": {
+      "value": "3rmGuest"
+    },
+    "webNumberOfInstances": {
+      "value": 1
+    },
+    "webVMSize": {
+      "value": "Standard_D1"
+    },
+    "gwayVMSize": {
+      "value": "Standard_D1"
+    },
+    "appVMSize": {
+      "value": "Standard_D1"
+    },
+    "appNumberOfInstances": {
+      "value": 1
+    },
+    "sqlVMSize": {
+      "value": "Standard_D1"
+    },
+    "sqlNumberOfInstances": {
+      "value": 1
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "newStorageAccountName": {
+      "value": "siebelfull"
+    },
+    "webLoadBalancerName": {
+      "value": "SiebelLB1"
+    },
+    "adminUsername": {
+      "value": "siebel"
+    },
+    "publicIPPrefix": {
+      "value": "siebeltest1"
+    },
+    "adminPassword": {
+      "value": "Siebel@Azure1"
+    },
+    "cstPassword": {
+      "value": "Cst@Azure1"
+    },
+    "ermPassword": {
+      "value": "Erm@Azure1"
+    },
+    "entTokenPassword": {
+      "value": "EntToken@Azure1"
+    }
+  }
+}

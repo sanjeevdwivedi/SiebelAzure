@@ -1,0 +1,18 @@
+﻿{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "adminUsername": {
+            "value": "siebel"
+        },
+        "publicIPAddressName": {
+            "value": "siebeldev"
+        },
+        "adminPassword": {
+            "value": "Siebel@Azure1"
+        },
+        "newStorageAccountName": {
+            "value": "siebel1demo1"
+        }		
+    }
+}

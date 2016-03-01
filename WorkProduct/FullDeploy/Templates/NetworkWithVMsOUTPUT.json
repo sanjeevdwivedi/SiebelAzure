@@ -1,0 +1,209 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "newStorageAccountName": {
+      "type": "string"
+    },
+    "dnsNameForPublicIP": {
+      "type": "string",
+      "metadata": { "description": "DNS prefix for the public endport: <prefix>.cloudapp.windows.net" }
+    },
+    "adminUsername": {
+      "type": "string",
+      "metadata": {
+        "description": "Admin username"
+      }
+    },
+    "adminPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Admin password"
+      }
+    },
+    "dbAdminPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "DB Admin password"
+      }
+    },
+    "cstPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Cst password"
+      }
+    },
+    "ermPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Erm password"
+      }
+    },
+    "webVMSize": {
+      "type": "string",
+      "defaultValue": "Standard_A1",
+      "metadata": {
+        "description": "This is the allowed list of VM sizes"
+      }
+    },
+    "gwayVMSize": {
+      "type": "string",
+      "defaultValue": "Standard_A1",
+      "metadata": {
+        "description": "This is the allowed list of VM sizes"
+      }
+    },
+    "appVMSize": {
+      "type": "string",
+      "defaultValue": "Standard_A1",
+      "metadata": {
+        "description": "This is the allowed list of VM sizes"
+      }
+    },
+    "sqlVMSize": {
+      "type": "string",
+      "defaultValue": "Standard_D1",
+      "metadata": {
+        "description": "This is the allowed list of VM sizes"
+      }
+    },
+    "storageAccountType": {
+      "type": "string",
+      "defaultValue": "Standard_LRS",
+      "metadata": {
+        "description": "Type of storage account"
+      }
+    },
+    "webNumberOfInstances": {
+      "type": "int",
+      "defaultValue": "2",
+      "metadata": {
+        "description": "Number of web server VM's"
+      }
+    },
+    "appNumberOfInstances": {
+      "type": "int",
+      "defaultValue": "2",
+      "metadata": {
+        "description": "Number of app server VM's"
+      }
+    },
+    "sqlNumberOfInstances": {
+      "type": "int",
+      "defaultValue": "1",
+      "metadata": {
+        "description": "Number of SQL server VM's"
+      }
+    }
+  },
+  "variables": {
+    "entToken": "Siebel3ntToken",
+    "virtualNetworkName": "siebelVnet1",
+    "webAvailabilitySetName": "WebSet",
+    "publicIPAddressName": "siebelsvc",
+    "publicIPAddressID": "[resourceId('Microsoft.Network/publicIPAddresses',variables('publicIPAddressName'))]",
+    "publicIPAddressType": "Dynamic",
+    "webSubnetName": "webServerSubnet",
+    "gwaySubnetName": "gwayServerSubnet",
+    "appSubnetName": "appServerSubnet",
+    "sqlSubnetName": "sqlServerSubnet",
+    "gwayVMName": "gateway",
+    "sqlVMName": "sqlserver",
+    "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName'))]",
+    "webSubnetRef": "[concat(variables('vnetID'),'/subnets/',variables ('webSubnetName'))]",
+    "gwaySubnetRef": "[concat(variables('vnetID'),'/subnets/',variables ('gwaySubnetName'))]",
+    "appSubnetRef": "[concat(variables('vnetID'),'/subnets/',variables ('appSubnetName'))]",
+    "sqlSubnetRef": "[concat(variables('vnetID'),'/subnets/',variables ('sqlSubnetName'))]",
+    "lbID": "[resourceId('Microsoft.Network/loadBalancers',variables('webLoadBalancerName'))]",
+    "frontEndIPConfigID": "[concat(variables('lbID'),'/frontendIPConfigurations/LoadBalancerFrontend')]",
+    "sqlImagePublisher": "MicrosoftSQLServer",
+    "sqlImageOffer": "SQL2014SP1-WS2012R2",
+    "sqlImageSKU": "Standard",
+    "webImagePublisher": "MicrosoftWindowsServer",
+    "webImageOffer": "WindowsServer",
+    "webImageSKU": "2012-R2-Datacenter",
+    "webNIC": "webNIC",
+    "gwayNIC": "gwayNIC",
+    "appNIC": "appNIC",
+    "sqlNIC": "sqlNIC",
+    "webLoadBalancerName": "webLB",
+    "webVmNamePrefix": "WebVM",
+    "appVmNamePrefix": "AppVM",
+    "webConfigFilePath": "eapps.cfg",
+    "artifactsLocation": "https://siebelartifacts.blob.core.windows.net/",
+    "scriptsLocation": "[concat(variables('artifactsLocation'), 'scripts/')]",
+    "datadiskLocation": "[concat(variables('artifactsLocation'), 'datadisks/')]",
+    "osdiskLocation": "[concat(variables('artifactsLocation'), 'osdisks/')]",
+    "DSCContainer": "[concat(variables('scriptsLocation'), 'serverConfig.ps1.zip')]",
+    "gwayScriptScriptFileName": "Gateway.ps1",
+    "gwayScriptParams": "[concat('-windows_sadmin_password ', parameters('adminPassword'), ' -windows_siebel_password ', parameters('adminPassword'), '-db_sadmin_password ', parameters('dbAdminPassword'))]",
+    "appScriptScriptFileName": "appSrvr.ps1",
+    "appScriptParams": "[concat('-windows_sadmin_password ', parameters('adminPassword'), ' -windows_siebel_password ', parameters('adminPassword'), '-db_sadmin_password ', parameters('dbAdminPassword'))]",
+    "sqlScriptScriptFileName": "sqlServer.ps1",
+    "sqlScriptParams": "[concat('-db_sadmin_password ', parameters('adminPassword'), ' -db_siebel_password ', parameters('adminPassword'), ' -db_guestcst_password ', parameters('cstPassword'), ' -db_guesterm_password ', parameters('ermPassword'), ' -windows_siebel_password ', parameters('adminPassword'))]",
+    "webScriptScriptFileName": "webServer.ps1",
+    "webScriptParams": "[concat('-config_file ', variables('webConfigFilePath'), ' -windows_siebel_password ', parameters('adminPassword'), ' -db_guestcst_password ', parameters('cstPassword'), ' -db_guesterm_password ', parameters('ermPassword'), ' -ent_token ', variables('entToken'))]"
+  },
+  "resources": [
+    {
+      "apiVersion": "2015-05-01-preview",
+      "type": "Microsoft.Network/virtualNetworks",
+      "name": "[variables('virtualNetworkName')]",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "displayName": "VirtualNetwork"
+      },
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "10.0.0.0/16"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "[variables('webSubnetName')]",
+            "properties": {
+              "addressPrefix": "10.0.0.0/24"
+            }
+          },
+          {
+            "name": "[variables('gwaySubnetName')]",
+            "properties": {
+              "addressPrefix": "10.0.1.0/29"
+            }
+          },
+          {
+            "name": "[variables('appSubnetName')]",
+            "properties": {
+              "addressPrefix": "10.0.2.0/24"
+            }
+          },
+          {
+            "name": "[variables('sqlSubnetName')]",
+            "properties": {
+              "addressPrefix": "10.0.3.0/24"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "outputs": {
+    "frontendIPConfigurationID": {
+      "type": "string",
+      "value": "[variables('frontEndIPConfigID')]"
+    },
+    "sqlscriptlocation": {
+      "type": "string",
+      "value": "[concat(variables('scriptsLocation'), variables('sqlScriptScriptFileName'))]"
+    },
+    "appscriptlocation": {
+      "type": "string",
+      "value": "[concat(variables('scriptsLocation'), variables('appScriptScriptFileName'))]"
+    },
+    "webscriptlocation": {
+      "type": "string",
+      "value": "[concat(variables('scriptsLocation'), variables('webScriptScriptFileName'))]"
+    }
+  }
+}

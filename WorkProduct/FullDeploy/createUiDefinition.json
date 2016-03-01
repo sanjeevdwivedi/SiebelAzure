@@ -1,0 +1,274 @@
+{
+  "handler": "Microsoft.Compute.MultiVm",
+  "version": "0.0.1-preview",
+  "parameters": {
+    "basics": [
+
+      {
+        "name": "adminUsername",
+        "type": "Microsoft.Compute.UserNameTextBox",
+        "label": "VM username",
+        "toolTip": "Administrative username for the virtual machines.",
+        "osPlatform": "Linux",
+        "constraints": {
+          "required": true
+        }
+      },
+      {
+        "name": "adminPassword",
+        "type": "Microsoft.Common.PasswordBox",
+        "label": {
+          "password": "VM password",
+          "confirmPassword": "Confirm VM password"
+        },
+        "toolTip": "Administrative password.",
+        "constraints": {
+          "required": true,
+          "regex": "^(?:(?=.*[a-z])(?:(?=.*[A-Z])(?=.*[\\d\\W])|(?=.*\\W)(?=.*\\d))|(?=.*\\W)(?=.*[A-Z])(?=.*\\d)).{6,72}$",
+          "validationMessage": "The password must be between 6 and 72 characters long, and contain characters from at least 3 of the following groups: uppercase characters, lowercase characters, numbers, and special characters."
+        },
+        "options": {
+          "hideConfirmation": false
+        }
+      }
+    ],
+    "steps": [
+      {
+        "name": "infrastructureSetup",
+        "label": "Infrastructure Setup",
+        "subLabel": {
+          "preValidation": "Required",
+          "postValidation": "Done"
+        },
+        "bladeTitle": "Infrastructure Setup",
+        "elements": [
+          {
+            "name": "newStorageAccountName",
+            "type": "Microsoft.Storage.StorageAccountSelector",
+            "label": "Storage account",
+            "toolTip": "Storage account where the VM disks will be stored.",
+            "constraints": {
+              "required": true
+            }
+          },
+          {
+            "name": "dnsNameForPublicIP",
+            "type": "Microsoft.Common.TextBox",
+            "label": "DNS prefix",
+            "toolTip": "This prefix will determine the public DNS name for the deployment.",
+            "constraints": {
+              "required": true
+            }
+          }
+        ]
+      },
+      {
+        "name": "webDeploymentDetails",
+        "label": "Web Deployment Parameters",
+        "subLabel": {
+          "preValidation": "Required",
+          "postValidation": "Done"
+        },
+        "bladeTitle": "Web Deployment Parameters",
+        "elements": [
+          {
+            "name": "webSize",
+            "type": "Microsoft.Compute.SizeSelector",
+            "label": "Size",
+            "toolTip": "",
+            "recommendedSizes": [
+              "Standard_D1",
+              "Standard_D2",
+              "Standard_D3"
+            ],
+            "constraints": {
+              "allowedSizes": [ ],
+              "excludedSizes": [ ]
+            },
+            "osPlatform": "Windows",
+            "imageReference": {
+              "publisher": "MicrosoftWindowsServer",
+              "offer": "WindowsServer",
+              "sku": "2012-R2-Datacenter"
+            },
+            "count": 2
+          },
+          {
+            "name": "webVMCount",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Number of web server instances",
+            "toolTip": "Number of web server instances.",
+            "defaultValue": 2,
+            "constraints": {
+              "required": true
+            }
+          },
+          {
+            "name": "cstPassword",
+            "type": "Microsoft.Common.PasswordBox",
+            "label": {
+              "password": "CST password",
+              "confirmPassword": "Confirm CST password"
+            },
+            "toolTip": "Password for the anonymous GUESTCST user in the database.",
+            "constraints": {
+              "required": true,
+              "regex": "^(?:(?=.*[a-z])(?:(?=.*[A-Z])(?=.*[\\d\\W])|(?=.*\\W)(?=.*\\d))|(?=.*\\W)(?=.*[A-Z])(?=.*\\d)).{6,72}$",
+              "validationMessage": "The password must be between 6 and 72 characters long, and contain characters from at least 3 of the following groups: uppercase characters, lowercase characters, numbers, and special characters."
+            },
+            "options": {
+              "hideConfirmation": false
+            }
+          },
+          {
+            "name": "ermPassword",
+            "type": "Microsoft.Common.PasswordBox",
+            "label": {
+              "password": "ERM password",
+              "confirmPassword": "Confirm ERM password"
+            },
+            "toolTip": "Password for the anonymous GUESTERM user in the database.",
+            "constraints": {
+              "required": true,
+              "regex": "^(?:(?=.*[a-z])(?:(?=.*[A-Z])(?=.*[\\d\\W])|(?=.*\\W)(?=.*\\d))|(?=.*\\W)(?=.*[A-Z])(?=.*\\d)).{6,72}$",
+              "validationMessage": "The password must be between 6 and 72 characters long, and contain characters from at least 3 of the following groups: uppercase characters, lowercase characters, numbers, and special characters."
+            },
+            "options": {
+              "hideConfirmation": false
+            }
+          }
+        ]
+      },
+      {
+        "name": "backendDeploymentParams",
+        "label": "Backend Deployment Parameters",
+        "subLabel": {
+          "preValidation": "Required",
+          "postValidation": "Done"
+        },
+        "bladeTitle": "Beckend Deployment Parameters",
+        "elements": [
+          {
+            "name": "appVMSize",
+            "type": "Microsoft.Compute.SizeSelector",
+            "label": "Size",
+            "toolTip": "",
+            "recommendedSizes": [
+              "Standard_D1",
+              "Standard_D2",
+              "Standard_D3"
+            ],
+            "constraints": {
+              "allowedSizes": [ ],
+              "excludedSizes": [ ]
+            },
+            "osPlatform": "Windows",
+            "imageReference": {
+              "publisher": "MicrosoftWindowsServer",
+              "offer": "WindowsServer",
+              "sku": "2012-R2-Datacenter"
+            },
+            "count": 1
+          },
+          {
+            "name": "appVMCount",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Number of app server instances",
+            "toolTip": "Number of app server instances.",
+            "defaultValue": 2,
+            "constraints": {
+              "required": true
+            }
+          },
+          {
+            "name": "gwayVMSize",
+            "type": "Microsoft.Compute.SizeSelector",
+            "label": "Size",
+            "toolTip": "",
+            "recommendedSizes": [
+              "Standard_D1",
+              "Standard_D2",
+              "Standard_D3"
+            ],
+            "constraints": {
+              "allowedSizes": [ ],
+              "excludedSizes": [ ]
+            },
+            "osPlatform": "Windows",
+            "imageReference": {
+              "publisher": "MicrosoftWindowsServer",
+              "offer": "WindowsServer",
+              "sku": "2012-R2-Datacenter"
+            },
+            "count": 1
+          },
+          {
+            "name": "sqlVMSize",
+            "type": "Microsoft.Compute.SizeSelector",
+            "label": "Size",
+            "toolTip": "",
+            "recommendedSizes": [
+              "Standard_D1",
+              "Standard_D2",
+              "Standard_D3"
+            ],
+            "constraints": {
+              "allowedSizes": [ ],
+              "excludedSizes": [ ]
+            },
+            "osPlatform": "Windows",
+            "imageReference": {
+              "publisher": "MicrosoftSQLServer",
+              "offer": "SQL2014SP1-WS2012R2",
+              "sku": "Standard"
+            },
+            "count": 1
+          },
+          {
+            "name": "sqlVMCount",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Number of SQL Server instances",
+            "toolTip": "Number of SQL Server instances.",
+            "defaultValue": 1,
+            "constraints": {
+              "required": true
+            }
+          },
+          {
+            "name": "adminPassword",
+            "type": "Microsoft.Common.PasswordBox",
+            "label": {
+              "password": "DB Admin password",
+              "confirmPassword": "Confirm password"
+            },
+            "toolTip": "Databasse administrator password.",
+            "constraints": {
+              "required": true,
+              "regex": "^(?:(?=.*[a-z])(?:(?=.*[A-Z])(?=.*[\\d\\W])|(?=.*\\W)(?=.*\\d))|(?=.*\\W)(?=.*[A-Z])(?=.*\\d)).{6,72}$",
+              "validationMessage": "The password must be between 6 and 72 characters long, and contain characters from at least 3 of the following groups: uppercase characters, lowercase characters, numbers, and special characters."
+            },
+            "options": {
+              "hideConfirmation": false
+            }
+          }
+        ]
+      }
+    ],
+    "outputs": {
+      "adminUsername": "[basics('adminUsername')]",
+      "adminPassword": "[basics('adminPassword')]",
+      "newStorageAccountName": "[steps('infrastructureSetup').newStorageAccountName.name]",
+      "storageAccountType": "[steps('infrastructureSetup').newStorageAccountName.type]",
+      "dnsNameForPublicIP": "[steps('infrastructureSetup').dnsNameForPublicIP]",
+      "cstPassword": "[steps('webDeploymentDetails').cstPassword]",
+      "ermPassword": "[steps('webDeploymentDetails').ermPassword]",
+      "webNumberOfInstances": "[steps('webDeploymentDetails').webVMCount]",
+      "webVMSize": "[steps('webDeploymentDetails').webSize]",
+      "gwayVMSize": "[steps('gwayDeploymentParams').gwayVMSize]",
+      "appVMSize": "[steps('appDeploymentParams').appVMSize]",
+      "appNumberOfInstances": "[steps('appDeploymentParams').appVMCount]",
+      "sqlVMSize": "[steps('sqlDeploymentParams').sqlVMSize]",
+      "sqlNumberOfInstances": "[steps('sqlDeploymentParams').sqlVMCount]"
+    }
+  }
+}

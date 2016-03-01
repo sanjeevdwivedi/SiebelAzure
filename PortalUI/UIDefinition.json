@@ -1,0 +1,21 @@
+{
+    "handler": "Microsoft.Compute.MultiVm",
+    "version": "0.0.1-preview",
+    "parameters": {
+        "basics": [
+           {
+              "name": "element1",
+              "type": "Microsoft.Common.TextBox",
+              "label": "Some text box",
+              "defaultValue": "foobar",
+              "toolTip": "Keep calm and visit the [Azure Portal](portal.azure.com).",
+              "constraints": {},
+              "options": {}
+            }
+        ],
+        "steps": [
+            {}
+        ],
+        "outputs": {}
+    }
+}
