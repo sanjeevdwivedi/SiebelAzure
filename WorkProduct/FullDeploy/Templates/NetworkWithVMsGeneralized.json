@@ -16,7 +16,7 @@
       }
     },
     "adminPassword": {
-      "type": "secureString",
+      "type": "string",
       "metadata": {
         "description": "Admin password"
       }
@@ -24,7 +24,13 @@
     "dbAdminPassword": {
       "type": "string",
       "metadata": {
-        "description": "DB Admin password"
+        "description": "DB Siebel Admin password"
+      }
+    },
+    "dbsaPassword": {
+      "type": "string",
+      "metadata": {
+        "description": "DB sa password"
       }
     },
     "cstPassword": {
@@ -97,6 +103,7 @@
     }
   },
   "variables": {
+    "sq": "'",
     "entToken": "Siebel3ntToken",
     "virtualNetworkName": "siebelVnet1",
     "webAvailabilitySetName": "WebSet",
@@ -132,19 +139,36 @@
     "webLoadBalancerName": "webLB",
     "webVmNamePrefix": "WebVM",
     "appVmNamePrefix": "AppVM",
-    "webConfigFilePath": "eapps.cfg",
+    "webConfigFilePath": "C:\\Siebel\\eappweb\\bin\\eapps.cfg",
     "artifactsLocation": "https://siebelartifacts.blob.core.windows.net/",
     "scriptsLocation": "[concat(variables('artifactsLocation'), 'scripts/')]",
-    "datadiskLocation": "[concat(variables('artifactsLocation'), 'datadisks/')]",
-    "osdiskLocation": "[concat(variables('artifactsLocation'), 'osdisks/')]",
+    //"datadiskLocation": "[concat(variables('artifactsLocation'), 'datadisks/')]",
+    //"osdiskLocation": "[concat(variables('artifactsLocation'), 'osdisks/')]",
+    "datadiskLocation": "[concat(variables('artifactsLocation'), 'system/')]",
+    "osdiskLocation": "[concat(variables('artifactsLocation'), 'system/')]",
     "DSCContainer": "[concat(variables('scriptsLocation'), 'serverConfig.ps1.zip')]",
+    "vhdPath": "[concat('http://',parameters('newStorageAccountName'),'.blob.core.windows.net/vhdstest/')]",
+    "gwayScripts": {
+      "scriptsToDownload": [
+        "[concat(variables('scriptsLocation'), 'LogOnAsAService.inf')]",
+        "[concat(variables('scriptsLocation'), 'Gateway.ps1')]"
+      ],
+      "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File Gateway.ps1 -windows_sadmin_password ', parameters('adminPassword'), ' -windows_siebel_password ', parameters('adminPassword'), ' -db_sadmin_password ', parameters('dbAdminPassword'))]"
+    },
     "gwayScriptScriptFileName": "Gateway.ps1",
     "gwayScriptParams": "[concat('-windows_sadmin_password ', parameters('adminPassword'), ' -windows_siebel_password ', parameters('adminPassword'), '-db_sadmin_password ', parameters('dbAdminPassword'))]",
+    "appScripts": {
+      "scriptsToDownload": [
+        "[concat(variables('scriptsLocation'), 'LogOnAsAService.inf')]",
+        "[concat(variables('scriptsLocation'), 'AppSrvr.ps1')]"
+      ],
+      "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File AppSrvr.ps1 -windows_sadmin_password ', parameters('adminPassword'), ' -windows_siebel_password ', parameters('adminPassword'), ' -db_sadmin_password ', parameters('dbAdminPassword'))]"
+    },
     "appScriptScriptFileName": "AppSrvr.ps1",
     "appScriptParams": "[concat('-windows_sadmin_password ', parameters('adminPassword'), ' -windows_siebel_password ', parameters('adminPassword'), '-db_sadmin_password ', parameters('dbAdminPassword'))]",
     "sqlScriptScriptFileName": "SQLServer.ps1",
-    "sqlScriptParams": "[concat('-db_sadmin_password ', parameters('adminPassword'), ' -db_siebel_password ', parameters('adminPassword'), ' -db_guestcst_password ', parameters('cstPassword'), ' -db_guesterm_password ', parameters('ermPassword'), ' -windows_siebel_password ', parameters('adminPassword'))]",
-    "webScriptScriptFileName": "WebServer.ps1",
+    "sqlScriptParams": "[concat('-db_sadmin_password ', parameters('dbsaPassword'), ' -db_siebel_password ', parameters('adminPassword'), ' -db_guestcst_password ', parameters('cstPassword'), ' -db_guesterm_password ', parameters('ermPassword'), ' -db_sa_password ', parameters('dbsaPassword'), ' -windows_siebel_password ', parameters('adminPassword'))]",
+    "webScriptScriptFileName": "./WebServer.ps1",
     "webScriptParams": "[concat('-config_file ', variables('webConfigFilePath'), ' -windows_siebel_password ', parameters('adminPassword'), ' -db_guestcst_password ', parameters('cstPassword'), ' -db_guesterm_password ', parameters('ermPassword'), ' -ent_token ', variables('entToken'))]"
   },
   "resources": [
@@ -555,19 +579,22 @@
           "adminPassword": "[parameters('adminPassword')]"
         },
         "storageProfile": {
-          "imageReference": {
-            "publisher": "[variables('webImagePublisher')]",
-            "offer": "[variables('webImageOffer')]",
-            "sku": "[variables('webImageSKU')]",
-            "version": "latest"
-          },
           "osDisk": {
-            "name": "osdisk",
-            "vhd": {
-              "uri": "[concat('http://',parameters('newStorageAccountName'),'.blob.core.windows.net/vhds/','osdisk', copyindex(), '.vhd')]"
-            },
+            "name": "[concat(variables('webVmNamePrefix'), copyindex(), '-osDisk')]",
+            "osType": "Windows",
             "caching": "ReadWrite",
-            "createOption": "FromImage"
+            "createOption": "FromImage",
+            "image": {
+              "uri": "http://siebelartifacts.blob.core.windows.net/system/Microsoft.Compute/Images/webvm0/webvm0-osDisk.227a9ceb-62ec-410e-ad70-8e034bc9f798.vhd"
+            },
+            "vhd": {
+              //"uri": "[concat('http://',parameters('newStorageAccountName'),'.blob.core.windows.net/vhds/','webvm-osdisk', copyindex(), '.vhd')]"
+              "uri": "[concat(variables('vhdPath'),'webvm-osdisk', copyindex(), '.vhd')]"
+            }
+            //"vhd": {
+            //  "uri": "http://siebelartifacts.blob.core.windows.net/osdisks/web.vhd"
+            //},
+            //"createOption": "Attach"
           }
         },
         "networkProfile": {
@@ -577,58 +604,60 @@
             }
           ]
         }
-      }//,
-      //"resources": [
-      //  {
-      //    "name": "Microsoft.Powershell.DSC",
-      //    "type": "extensions",
-      //    "apiVersion": "2015-05-01-preview",
-      //    "location": "[resourceGroup().location]",
-      //    "dependsOn": [ "[concat('Microsoft.Compute/virtualMachines/',variables('webVmNamePrefix'), copyindex())]" ],
-      //    "tags": {
-      //      "displayName": "webSetupScript"
-      //    },
-      //    "properties": {
-      //      "publisher": "Microsoft.Powershell",
-      //      "type": "DSC",
-      //      "typeHandlerVersion": "2.0",
-      //      "autoUpgradeMinorVersion": "true",
-      //      "settings": {
-      //        "modulesUrl": "[variables('DSCContainer')]",
-      //        "sasToken": "",
-      //        "configurationFunction": "serverConfig.ps1\\website",
-      //        "properties": {
-      //          "MachineName": "[concat(variables('webVmNamePrefix'), copyindex())]"
-      //        }
-      //      },
-      //      "protectedSettings": { }
-      //    }
-      //  },
-      //  {
-      //    "name": "webConfigScript",
-      //    "type": "extensions",
-      //    "location": "[resourceGroup().location]",
-      //    "apiVersion": "2015-06-15",
-      //    "dependsOn": [
-      //      "[concat('Microsoft.Compute/virtualMachines/', concat(variables('webVmNamePrefix'), copyindex()))]"
-      //    ],
-      //    "tags": {
-      //      "displayName": "webConfigScript"
-      //    },
-      //    "properties": {
-      //      "publisher": "Microsoft.Compute",
-      //      "type": "CustomScriptExtension",
-      //      "typeHandlerVersion": "1.2",
-      //      "autoUpgradeMinorVersion": true,
-      //      "settings": {
-      //        "fileUris": [
-      //          "[concat(variables('scriptsLocation'), variables('webScriptScriptFileName'))]"
-      //        ],
-      //        "commandToExecute": "[concat('powershell -ExecutionPolicy Bypass -file ', variables('webScriptScriptFileName'), ' ', variables('webScriptParams'))]"
-      //      }
-      //    }
-      //  }
-      //]
+      },
+      "resources": [
+        {
+          "name": "Microsoft.Powershell.DSC",
+          "type": "extensions",
+          "apiVersion": "2015-05-01-preview",
+          "location": "[resourceGroup().location]",
+          "dependsOn": [ "[concat('Microsoft.Compute/virtualMachines/',variables('webVmNamePrefix'), copyindex())]" ],
+          "tags": {
+            "displayName": "webSetupScript"
+          },
+          "properties": {
+            "publisher": "Microsoft.Powershell",
+            "type": "DSC",
+            "typeHandlerVersion": "2.0",
+            "autoUpgradeMinorVersion": "true",
+            "settings": {
+              "modulesUrl": "[variables('DSCContainer')]",
+              "sasToken": "",
+              "configurationFunction": "serverConfig.ps1\\website",
+              "properties": {
+                "MachineName": "[concat(variables('webVmNamePrefix'), copyindex())]"
+              }
+            },
+            "protectedSettings": { }
+          }
+        },
+        {
+          "name": "webConfigScript",
+          "type": "extensions",
+          "location": "[resourceGroup().location]",
+          "apiVersion": "2015-06-15",
+          "dependsOn": [
+            "[concat('Microsoft.Compute/virtualMachines/', concat(variables('webVmNamePrefix'), copyindex()))]"
+          ],
+          "tags": {
+            "displayName": "webConfigScript"
+          },
+          "properties": {
+            "publisher": "Microsoft.Compute",
+            "type": "CustomScriptExtension",
+            "typeHandlerVersion": "1.2",
+            "autoUpgradeMinorVersion": true,
+            "settings": {
+              "fileUris": [
+                "[concat(variables('scriptsLocation'), variables('webScriptScriptFileName'))]"
+              ]
+            },
+            "protectedSettings": {
+              "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -file ', variables('webScriptScriptFileName'), ' ', variables('webScriptParams'))]"
+            }
+          }
+        }
+      ]
     },
     {
       "apiVersion": "2015-06-15",
@@ -638,7 +667,8 @@
       "dependsOn": [
         //"[concat('Microsoft.Storage/storageAccounts/', parameters('newStorageAccountName'))]",
         "[concat('Microsoft.Network/networkInterfaces/', variables('gwayNIC'))]",
-        "[concat('Microsoft.Compute/availabilitySets/', variables('webAvailabilitySetName'))]"
+        "[concat('Microsoft.Compute/availabilitySets/', variables('webAvailabilitySetName'))]",
+        "[concat('Microsoft.Compute/virtualMachines/', variables('sqlVMName'))]"
       ],
       "tags": {
         "displayName": "SiebelGateway"
@@ -651,19 +681,22 @@
           "vmSize": "[parameters('gwayVMSize')]"
         },
         "storageProfile": {
-          "imageReference": {
-            "publisher": "[variables('webImagePublisher')]",
-            "offer": "[variables('webImageOffer')]",
-            "sku": "[variables('webImageSKU')]",
-            "version": "latest"
-          },
           "osDisk": {
-            "name": "OSDisk",
+            "name": "[concat(variables('webVmNamePrefix'), '-osDisk')]",
+            "osType": "Windows",
+            "caching": "ReadWrite",
             "createOption": "FromImage",
-            "vhd": {
-              "uri": "[concat('http://',parameters('newStorageAccountName'),'.blob.core.windows.net/vhds/','gwaysvros.vhd')]"
+            "image": {
+              "uri": "http://siebelartifacts.blob.core.windows.net/system/Microsoft.Compute/Images/gateway/gateway-osDisk.81a34506-f594-4b4a-9de3-88f2bd3cc7f6.vhd"
             },
-            "caching": "ReadWrite"
+            "vhd": {
+              //"uri": "[concat('http://',parameters('newStorageAccountName'),'.blob.core.windows.net/vhds/gateway-osdisk.vhd')]"
+              "uri": "[concat(variables('vhdPath'),'gateway-osdisk.vhd')]"
+            }
+            //"vhd": {
+            //  "uri": "http://siebelartifacts.blob.core.windows.net/osdisks/gateway.vhd"
+            //},
+            //"createOption": "Attach"
           }
         },
         "osProfile": {
@@ -679,33 +712,36 @@
           ]
         },
         "provisioningState": 0
-      } //,
-      //"resources": [
-      //  {
-      //    "name": "gwayScript",
-      //    "type": "extensions",
-      //    "location": "[resourceGroup().location]",
-      //    "apiVersion": "2015-06-15",
-      //    "dependsOn": [
-      //      "[concat('Microsoft.Compute/virtualMachines/', variables('gwayVMName'))]"
-      //    ],
-      //    "tags": {
-      //      "displayName": "gwayScript"
-      //    },
-      //    "properties": {
-      //      "publisher": "Microsoft.Compute",
-      //      "type": "CustomScriptExtension",
-      //      "typeHandlerVersion": "1.4",
-      //      "autoUpgradeMinorVersion": true,
-      //      "settings": {
-      //        "fileUris": [
-      //          "[concat(variables('scriptsLocation'), variables('gwayScriptScriptFileName'))]"
-      //        ],
-      //        "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File ', variables('gwayScriptScriptFileName'), ' ', variables('gwayScriptParams'))]"
-      //      }
-      //    }
-      //  }
-      //]
+      },
+      "resources": [
+        {
+          "name": "gwayScript",
+          "type": "extensions",
+          "location": "[resourceGroup().location]",
+          "apiVersion": "2015-06-15",
+          "dependsOn": [
+            "[concat('Microsoft.Compute/virtualMachines/', variables('gwayVMName'))]"
+          ],
+          "tags": {
+            "displayName": "gwayScript"
+          },
+          "properties": {
+            "publisher": "Microsoft.Compute",
+            "type": "CustomScriptExtension",
+            "typeHandlerVersion": "1.4",
+            "autoUpgradeMinorVersion": true,
+            "settings": {
+              "fileUris": [
+                "https://siebelartifacts.blob.core.windows.net/scripts/LogOnAsAService.inf",
+                "https://siebelartifacts.blob.core.windows.net/scripts/Gateway.ps1"
+              ]              
+            },
+            "protectedSettings": {
+              "commandToExecute": "[variables('gwayScripts').commandToExecute]"
+            }
+          }
+        }
+      ]
     },
     {
       "apiVersion": "2015-06-15",
@@ -718,7 +754,8 @@
       "location": "[resourceGroup().location]",
       "dependsOn": [
         //"[concat('Microsoft.Storage/storageAccounts/', parameters('newStorageAccountName'))]",
-        "[concat('Microsoft.Network/networkInterfaces/', variables('appNIC'), copyIndex())]"
+        "[concat('Microsoft.Network/networkInterfaces/', variables('appNIC'), copyIndex())]",
+        "[concat('Microsoft.Compute/virtualMachines/', variables('sqlVMName'))]"
       ],
       "tags": {
         "displayName": "SiebelAppServer"
@@ -731,19 +768,22 @@
           "vmSize": "[parameters('appVMSize')]"
         },
         "storageProfile": {
-          "imageReference": {
-            "publisher": "[variables('webImagePublisher')]",
-            "offer": "[variables('webImageOffer')]",
-            "sku": "[variables('webImageSKU')]",
-            "version": "latest"
-          },
           "osDisk": {
-            "name": "OSDisk",
+            "name": "[concat(variables('webVmNamePrefix'), copyindex(), '-osDisk')]",
+            "osType": "Windows",
+            "caching": "ReadWrite",
             "createOption": "FromImage",
-            "vhd": {
-              "uri": "[concat('http://',parameters('newStorageAccountName'),'.blob.core.windows.net/vhds/','appsvros', copyIndex(), '.vhd')]"
+            "image": {
+              "uri": "http://siebelartifacts.blob.core.windows.net/system/Microsoft.Compute/Images/appvm0/appvm0-osDisk.5bad8db8-634b-429d-90f1-9cf80359e529.vhd"
             },
-            "caching": "ReadWrite"
+            "vhd": {
+              //"uri": "[concat('http://',parameters('newStorageAccountName'),'.blob.core.windows.net/vhds/','appvm-osdisk', copyindex(), '.vhd')]"
+              "uri": "[concat(variables('vhdPath'),'appvm-osdisk', copyindex(), '.vhd')]"
+            }
+            //"vhd": {
+            //  "uri": "http://siebelartifacts.blob.core.windows.net/osdisks/app.vhd"
+            //},
+            //"createOption": "Attach"
           }
         },
         "osProfile": {
@@ -759,33 +799,38 @@
           ]
         },
         "provisioningState": 0
-      } //,
-      //"resources": [
-      //  {
-      //    "name": "appScript",
-      //    "type": "extensions",
-      //    "location": "[resourceGroup().location]",
-      //    "apiVersion": "2015-06-15",
-      //    "dependsOn": [
-      //      "[concat('Microsoft.Compute/virtualMachines/', concat(variables('appVMNamePrefix'), copyindex()))]"
-      //    ],
-      //    "tags": {
-      //      "displayName": "appScript"
-      //    },
-      //    "properties": {
-      //      "publisher": "Microsoft.Compute",
-      //      "type": "CustomScriptExtension",
-      //      "typeHandlerVersion": "1.4",
-      //      "autoUpgradeMinorVersion": true,
-      //      "settings": {
-      //        "fileUris": [
-      //          "[concat(variables('scriptsLocation'), variables('appScriptScriptFileName'))]"
-      //        ],
-      //        "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File ', variables('appScriptScriptFileName'), ' ', variables('appScriptParams'))]"
-      //      }
-      //    }
-      //  }
-      //]
+      },
+      "resources": [
+        {
+          "name": "appScript",
+          "type": "extensions",
+          "location": "[resourceGroup().location]",
+          "apiVersion": "2015-06-15",
+          "dependsOn": [
+            "[concat('Microsoft.Compute/virtualMachines/', concat(variables('appVMNamePrefix'), copyindex()))]"
+          ],
+          "tags": {
+            "displayName": "appScript"
+          },
+          "properties": {
+            "publisher": "Microsoft.Compute",
+            "type": "CustomScriptExtension",
+            "typeHandlerVersion": "1.4",
+            "autoUpgradeMinorVersion": true,
+            "settings": {
+              "fileUris": [
+                "https://siebelartifacts.blob.core.windows.net/scripts/LogOnAsAService.inf",
+                "https://siebelartifacts.blob.core.windows.net/scripts/AppSrvr.ps1"
+              ]
+              //"commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File ', variables('appScriptScriptFileName'), ' ', variables('appScriptParams'))]"
+              
+            },
+            "protectedSettings": {
+              "commandToExecute": "[variables('appScripts').commandToExecute]"
+            }
+          }
+        }
+      ]
     },
     {
       "apiVersion": "2015-06-15",
@@ -813,19 +858,23 @@
           "adminPassword": "[parameters('adminPassword')]"
         },
         "storageProfile": {
-          "imageReference": {
-            "publisher": "[variables('sqlImagePublisher')]",
-            "offer": "[variables('sqlImageOffer')]",
-            "sku": "[variables('sqlImageSKU')]",
-            "version": "latest"
-          },
           "osDisk": {
-            "name": "osdisk",
-            "vhd": {
-              "uri": "[concat('http://',parameters('newStorageAccountName'),'.blob.core.windows.net/vhds/sqlosdisk.vhd')]"
-            },
+            "name": "[concat(variables('sqlVMName'), '-osDisk')]",
+            "osType": "Windows",
             "caching": "ReadWrite",
-            "createOption": "FromImage"
+            "createOption": "FromImage",
+            "image": {
+              "uri": "http://siebelartifacts.blob.core.windows.net/system/Microsoft.Compute/Images/sqlserver/sqlserver-osDisk.c83fbc78-dbc4-4282-8fdd-45904dfa62bb.vhd"
+              //"uri": "https://siebelartifacts.blob.core.windows.net/system/Microsoft.Compute/Images/sqlserver/sqlserver-osDisk.5e616b50-59fb-47d2-a98b-8d8de00f0a87.vhd"
+            },
+            "vhd": {
+              //"uri": "[concat('http://',parameters('newStorageAccountName'),'.blob.core.windows.net/vhds/sqlserver-osdisk.vhd')]"
+              "uri": "[concat(variables('vhdPath'),'sqlserver-osdisk.vhd')]"
+            }
+            //"vhd": {
+            //  "uri": "http://siebelartifacts.blob.core.windows.net/nongeneralized/sql.vhd"
+            //},
+            //"createOption": "Attach"
           }
           //,
           //"dataDisks": [
@@ -867,7 +916,9 @@
             "settings": {
               "fileUris": [
                 "[concat(variables('scriptsLocation'), variables('sqlScriptScriptFileName'))]"
-              ],
+              ]
+            },
+            "protectedSettings": {
               "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File ', variables('sqlScriptScriptFileName'), ' ', variables('sqlScriptParams'))]"
             }
           }
@@ -876,5 +927,15 @@
     }
   ],
   "outputs": {
+    "fqdn": {
+      "value": "[reference(variables('publicIPAddressID')).dnsSettings.fqdn]",
+      "type": "string"
+    },
+    "ipaddress": {
+      "value": "[reference(variables('publicIPAddressID'),providers('Microsoft.Network', 'publicIPAddresses').apiVersions[0]).ipAddress]",
+      "type": "string"
+    }
+
+
   }
 }

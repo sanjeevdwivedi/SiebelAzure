@@ -16,25 +16,25 @@
       }
     },
     "adminPassword": {
-      "type": "securestring",
+      "type": "secureString",
       "metadata": {
         "description": "Admin password"
       }
     },
     "dbAdminPassword": {
-      "type": "securestring",
+      "type": "string",
       "metadata": {
         "description": "DB Admin password"
       }
     },
     "cstPassword": {
-      "type": "securestring",
+      "type": "string",
       "metadata": {
         "description": "Cst password"
       }
     },
     "ermPassword": {
-      "type": "securestring",
+      "type": "string",
       "metadata": {
         "description": "Erm password"
       }
@@ -100,7 +100,7 @@
     "entToken": "Siebel3ntToken",
     "virtualNetworkName": "siebelVnet1",
     "webAvailabilitySetName": "WebSet",
-    "publicIPAddressName": "siebelsvc",
+    "publicIPAddressName": "siebelsvc2",
     "publicIPAddressID": "[resourceId('Microsoft.Network/publicIPAddresses',variables('publicIPAddressName'))]",
     "publicIPAddressType": "Dynamic",
     "webSubnetName": "webServerSubnet",
@@ -116,6 +116,8 @@
     "sqlSubnetRef": "[concat(variables('vnetID'),'/subnets/',variables ('sqlSubnetName'))]",
     "lbID": "[resourceId('Microsoft.Network/loadBalancers',variables('webLoadBalancerName'))]",
     "frontEndIPConfigID": "[concat(variables('lbID'),'/frontendIPConfigurations/LoadBalancerFrontend')]",
+    "appILBID": "[resourceId('Microsoft.Network/loadBalancers',variables('appILBName'))]",
+    "appILBfrontEndIPConfigID": "[concat(variables('appILBID'),'/frontendIPConfigurations/LoadBalancerFrontend')]",
     "sqlImagePublisher": "MicrosoftSQLServer",
     "sqlImageOffer": "SQL2014SP1-WS2012R2",
     "sqlImageSKU": "Standard",
@@ -126,6 +128,7 @@
     "gwayNIC": "gwayNIC",
     "appNIC": "appNIC",
     "sqlNIC": "sqlNIC",
+    "appILBName": "appILB",
     "webLoadBalancerName": "webLB",
     "webVmNamePrefix": "WebVM",
     "appVmNamePrefix": "AppVM",
@@ -137,14 +140,50 @@
     "DSCContainer": "[concat(variables('scriptsLocation'), 'serverConfig.ps1.zip')]",
     "gwayScriptScriptFileName": "Gateway.ps1",
     "gwayScriptParams": "[concat('-windows_sadmin_password ', parameters('adminPassword'), ' -windows_siebel_password ', parameters('adminPassword'), '-db_sadmin_password ', parameters('dbAdminPassword'))]",
-    "appScriptScriptFileName": "appSrvr.ps1",
+    "appScriptScriptFileName": "AppSrvr.ps1",
     "appScriptParams": "[concat('-windows_sadmin_password ', parameters('adminPassword'), ' -windows_siebel_password ', parameters('adminPassword'), '-db_sadmin_password ', parameters('dbAdminPassword'))]",
-    "sqlScriptScriptFileName": "sqlServer.ps1",
+    "sqlScriptScriptFileName": "SQLServer.ps1",
     "sqlScriptParams": "[concat('-db_sadmin_password ', parameters('adminPassword'), ' -db_siebel_password ', parameters('adminPassword'), ' -db_guestcst_password ', parameters('cstPassword'), ' -db_guesterm_password ', parameters('ermPassword'), ' -windows_siebel_password ', parameters('adminPassword'))]",
-    "webScriptScriptFileName": "webServer.ps1",
+    "webScriptScriptFileName": "WebServer.ps1",
     "webScriptParams": "[concat('-config_file ', variables('webConfigFilePath'), ' -windows_siebel_password ', parameters('adminPassword'), ' -db_guestcst_password ', parameters('cstPassword'), ' -db_guesterm_password ', parameters('ermPassword'), ' -ent_token ', variables('entToken'))]"
   },
   "resources": [
+    //{
+    //  "apiVersion": "2015-05-01-preview",
+    //  "type": "Microsoft.Storage/storageAccounts",
+    //  "name": "[parameters('newStorageAccountName')]",
+    //  "location": "[resourceGroup().location]",
+    //  "tags": {
+    //    "displayName": "StorageAccount"
+    //  },
+    //  "properties": {
+    //    "accountType": "[parameters('storageAccountType')]"
+    //  }
+    //},
+    {
+      "apiVersion": "2015-05-01-preview",
+      "type": "Microsoft.Compute/availabilitySets",
+      "name": "[variables('webAvailabilitySetName')]",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "displayName": "AvailabilitySet"
+      }
+    },
+    {
+      "apiVersion": "2015-05-01-preview",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "name": "[variables('publicIPAddressName')]",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "displayName": "PublicIP"
+      },
+      "properties": {
+        "publicIPAllocationMethod": "[variables('publicIPAddressType')]",
+        "dnsSettings": {
+          "domainNameLabel": "siebelsvcquicktest"
+        }
+      }
+    },
     {
       "apiVersion": "2015-05-01-preview",
       "type": "Microsoft.Network/virtualNetworks",
@@ -186,24 +225,284 @@
           }
         ]
       }
+    },
+    {
+      "apiVersion": "2015-05-01-preview",
+      "type": "Microsoft.Network/networkInterfaces",
+      "name": "[variables('gwayNIC')]",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "displayName": "gwayNIC"
+      },
+      "dependsOn": [
+        "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]",
+        "[concat('Microsoft.Network/loadBalancers/', variables('webLoadBalancerName'))]",
+        "[concat(variables('lbID'),'/inboundNatRules/RDP-GWAY')]"
+      ],
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[variables('gwaySubnetRef')]"
+              },
+              "loadBalancerInboundNatRules": [
+                {
+                  "id": "[concat(variables('lbID'),'/inboundNatRules/RDP-GWAY')]"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "2015-05-01-preview",
+      "type": "Microsoft.Network/networkInterfaces",
+      "name": "[variables('sqlNIC')]",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "displayName": "sqlNIC"
+      },
+      "dependsOn": [
+        "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]",
+        "[concat('Microsoft.Network/loadBalancers/', variables('webLoadBalancerName'))]",
+        "[concat(variables('lbID'),'/inboundNatRules/RDP-SQL')]"
+      ],
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[variables('sqlSubnetRef')]"
+              },
+              "loadBalancerInboundNatRules": [
+                {
+                  "id": "[concat(variables('lbID'),'/inboundNatRules/RDP-SQL')]"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/loadBalancers/inboundNatRules",
+      "name": "[concat(variables('webLoadBalancerName'), '/', 'RDP-SQL')]",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "displayName": "sqlNatRules"
+      },
+      "dependsOn": [
+        "[concat('Microsoft.Network/loadBalancers/', variables('webLoadBalancerName'))]"
+      ],
+      "properties": {
+        "frontendIPConfiguration": {
+          "id": "[variables('frontEndIPConfigID')]"
+        },
+        "protocol": "tcp",
+        "frontendPort": "8000",
+        "backendPort": 3389,
+        "enableFloatingIP": false
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "name": "[variables('webLoadBalancerName')]",
+      "type": "Microsoft.Network/loadBalancers",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "displayName": "webLB"
+      },
+      "dependsOn": [
+        "[concat('Microsoft.Network/publicIPAddresses/', variables('publicIPAddressName'))]"
+      ],
+      "properties": {
+        "frontendIPConfigurations": [
+          {
+            "name": "LoadBalancerFrontend",
+            "properties": {
+              "publicIPAddress": {
+                "id": "[variables('publicIPAddressID')]"
+              }
+            }
+          }
+        ],
+        "backendAddressPools": [
+          {
+            "name": "BackendPool1"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "name": "[variables('appILBName')]",
+      "type": "Microsoft.Network/loadBalancers",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "displayName": "appILB"
+      },
+      "dependsOn": [
+        "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]"
+      ],
+      "properties": {
+        "frontendIPConfigurations": [
+          {
+            "name": "LoadBalancerFrontend",
+            "properties": {
+              "subnet": {
+                "id": "[concat(variables('vnetID'),'/subnets/',variables ('appSubnetName'))]"
+              },
+              "privateIPAddress": "10.0.2.6",
+              "privateIPAllocationMethod": "Dynamic"
+            }
+          }
+        ],
+        "backendAddressPools": [
+          {
+            "name": "BackendPool1"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/loadBalancers/inboundNatRules",
+      "name": "[concat(variables('webLoadBalancerName'), '/', 'RDP-GWAY')]",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "displayName": "gwayNatRules"
+      },
+      "dependsOn": [
+        "[concat('Microsoft.Network/loadBalancers/', variables('webLoadBalancerName'))]"
+      ],
+      "properties": {
+        "frontendIPConfiguration": {
+          "id": "[variables('frontEndIPConfigID')]"
+        },
+        "protocol": "tcp",
+        "frontendPort": "7000",
+        "backendPort": 3389,
+        "enableFloatingIP": false
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Compute/virtualMachines",
+      "name": "[variables('gwayVMName')]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        //"[concat('Microsoft.Storage/storageAccounts/', parameters('newStorageAccountName'))]",
+        "[concat('Microsoft.Network/networkInterfaces/', variables('gwayNIC'))]",
+        "[concat('Microsoft.Compute/availabilitySets/', variables('webAvailabilitySetName'))]"
+      ],
+      "tags": {
+        "displayName": "SiebelGateway"
+      },
+      "properties": {
+        "availabilitySet": {
+          "id": "[resourceId('Microsoft.Compute/availabilitySets',variables('webAvailabilitySetName'))]"
+        },
+        "hardwareProfile": {
+          "vmSize": "[parameters('gwayVMSize')]"
+        },
+        "storageProfile": {
+          "osDisk": {
+            "osType": "Windows",
+            "name": "OSDisk",
+            "createOption": "FromImage",
+            "image": {
+              "uri": "[concat(variables('osdiskLocation'), 'gway-osDisk.29a45d83-554f-401a-825d-d0e7aae41776.vhd')]"
+            },
+            "vhd": {
+              "uri": "[concat('http://',parameters('newStorageAccountName'),'.blob.core.windows.net/vhds/','gwaysvros2.vhd')]"
+            },
+            "caching": "ReadWrite"
+          }
+        },
+        "osProfile": {
+          "computerName": "[variables('gwayVmName')]",
+          "adminUsername": "[parameters('adminUsername')]",
+          "adminPassword": "[parameters('adminPassword')]"
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',variables('gwayNIC'))]"
+            }
+          ]
+        },
+        "provisioningState": 0
+      },
+      "resources": [
+
+      ]
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Compute/virtualMachines",
+      "name": "[variables('sqlVMName')]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        //"[concat('Microsoft.Storage/storageAccounts/', parameters('newStorageAccountName'))]",
+        "[concat('Microsoft.Network/networkInterfaces/', variables('sqlNIC'))]"
+      ],
+      "tags": {
+        "displayName": "SiebelSqlServer"
+      },
+      "properties": {
+        "availabilitySet": {
+          "id": "[resourceId('Microsoft.Compute/availabilitySets',variables('webAvailabilitySetName'))]"
+        },
+        "hardwareProfile": {
+          "vmSize": "[parameters('sqlVMSize')]"
+        },
+        "osProfile": {
+          "computerName": "[variables('sqlVMName')]",
+          "adminUsername": "[parameters('adminUsername')]",
+          "adminPassword": "[parameters('adminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "[variables('sqlImagePublisher')]",
+            "offer": "[variables('sqlImageOffer')]",
+            "sku": "[variables('sqlImageSKU')]",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "osdisk",
+            "vhd": {
+              "uri": "[concat('http://',parameters('newStorageAccountName'),'.blob.core.windows.net/vhds/sqlosdisk.vhd')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',variables('sqlNIC'))]"
+            }
+          ]
+        },
+        "diagnosticsProfile": {
+          "bootDiagnostics": {
+            "enabled": "true",
+            "storageUri": "[concat('http://',parameters('newStorageAccountName'),'.blob.core.windows.net')]"
+          }
+        }
+      },
+      "resources": [
+        
+      ]
     }
   ],
   "outputs": {
-    "frontendIPConfigurationID": {
-      "type": "string",
-      "value": "[variables('frontEndIPConfigID')]"
-    },
-    "sqlscriptlocation": {
-      "type": "string",
-      "value": "[concat(variables('scriptsLocation'), variables('sqlScriptScriptFileName'))]"
-    },
-    "appscriptlocation": {
-      "type": "string",
-      "value": "[concat(variables('scriptsLocation'), variables('appScriptScriptFileName'))]"
-    },
-    "webscriptlocation": {
-      "type": "string",
-      "value": "[concat(variables('scriptsLocation'), variables('webScriptScriptFileName'))]"
-    }
   }
 }

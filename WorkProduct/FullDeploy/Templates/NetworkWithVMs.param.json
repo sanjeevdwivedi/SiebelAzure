@@ -3,13 +3,16 @@
   "contentVersion": "1.0.0.0",
   "parameters": {
     "adminUsername": {
-      "value": "siebel"
+      "value": "siebeladmin"
     },
     "adminPassword": {
       "value": "P@ssword"
     },
     "dbAdminPassword": {
-      "value": "P@ssword"
+      "value": "dbP@ssword"
+    },
+    "dbsaPassword": {
+      "value": "dbsaP@ssword"
     },
     "newStorageAccountName": {
       "value": "siebelartifacts"

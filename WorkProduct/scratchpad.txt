@@ -1,0 +1,144 @@
+https://siebelartifacts.blob.core.windows.net/scripts/createUiDefinition.json
+
+
+https://portal.azure.com/#blade/Microsoft_Azure_Compute/CreateMultiVmWizardBlade/internal_bladeCallId/anything/internal_bladeCallerParams/{"initialData":{},"providerConfig":{"createUiDefinition":"https://siebelartifacts.blob.core.windows.net/scripts/createUiDefinition.json"}}
+https://portal.azure.com/?clientOptimizations=false#blade/Microsoft_Azure_Compute/CreateMultiVmWizardBlade/internal_bladeCallId/anything/internal_bladeCallerParams/{"initialData":{},"providerConfig":{"createUiDefinition":"https%3A%2F%2Fsiebelartifacts.blob.core.windows.net%2Fscripts%2FcreateUiDefinition.json"}}
+
+
+
+<a href="https://portal.azure.com/#blade/Microsoft_Azure_Compute/CreateMultiVmWizardBlade/internal_bladeCallId/anything/internal_bladeCallerParams/{"initialData":{},"providerConfig":{"createUiDefinition":"https://siebelartifacts.blob.core.windows.net/scripts/createUiDefinition.json"}}">[Preview createUiDefinition.json]</a>
+
+New-AzureRmResourceGroupDeployment -ResourceGroupName "agSiebeldeploy" -TemplateFile "NetworkWithVMsGeneralized.json" -TemplateParameterFile "NetworkWithVMs.param.json"
+
+New-AzureRmResourceGroupDeployment -ResourceGroupName "agSiebeltest" -TemplateFile "NetworkWithVMsGeneralized.json" -TemplateParameterFile "NetworkWithVMs.param.json"
+
+New-AzureRmResourceGroupDeployment -ResourceGroupName "agSiebeltest" -TemplateFile "azuredeploy.json" -TemplateParameterFile "azuredeploy.parameters.json"
+
+//"[concat(variables('scriptsLocation'), variables('gwayScriptScriptFileName'))]"
+//"[variables('gwayScripts').scriptsToDownload]"
+
+          "imageReference": {
+            "publisher": "[variables('webImagePublisher')]",
+            "offer": "[variables('webImageOffer')]",
+            "sku": "[variables('webImageSKU')]",
+            "version": "latest"
+          },
+
+"imageReference": {
+            "publisher": "[variables('sqlImagePublisher')]",
+            "offer": "[variables('sqlImageOffer')]",
+            "sku": "[variables('sqlImageSKU')]",
+            "version": "latest"
+          },
+"osDisk": {
+            "name": "osdisk",
+            "vhd": {
+              "uri": "[concat('http://',parameters('newStorageAccountName'),'.blob.core.windows.net/vhds/sqlosdisk.vhd')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          }
+
+
+"osDisk": {
+            "osType": "Windows",
+            "name": "OSDisk",
+            "createOption": "FromImage",
+            "image": {
+              "uri": "[concat(variables('osdiskLocation'), 'gway-osDisk.29a45d83-554f-401a-825d-d0e7aae41776.vhd')]"
+            },
+            "vhd": {
+              "uri": "[concat('http://',parameters('newStorageAccountName'),'.blob.core.windows.net/vhds/','gwaysvros.vhd')]"
+            },
+            "caching": "ReadWrite"
+          }
+
+Output:
+https://siebelartifacts.blob.core.windows.net/scripts/sqlServer.ps1
+Explorer:
+http://siebelartifacts.blob.core.windows.net/scripts/SQLServer.ps1
+
+Set-AzureRmVMExtension -ResourceGroupName "agSiebelTestDeploy" -VMName "appVM0" -Name "appScript" -ExtensionType "VMAccessAgent" -Publisher "Microsoft.Compute" -typeHandlerVersion "2.0" -Location Centralus
+
+Set-AzureRmVMExtension -ResourceGroupName "agSiebelTestDeploy" -VMName "appVM0" -Name "appScript" -Location Centralus
+
+
+GwayNIC:
+,
+              "loadBalancerInboundNatRules": [
+                {
+                  "id": "[concat(variables('lbID'),'/inboundNatRules/RDP-GWAY')]"
+                }
+              ]
+
+SQLNIC:
+,
+              "loadBalancerInboundNatRules": [
+                {
+                  "id": "[concat(variables('lbID'),'/inboundNatRules/RDP-SQL')]"
+                }
+              ]
+
+{
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/loadBalancers/inboundNatRules",
+      "name": "[concat(variables('webLoadBalancerName'), '/', 'RDP-GWAY')]",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "displayName": "gwayNatRules"
+      },
+      "dependsOn": [
+        "[concat('Microsoft.Network/loadBalancers/', variables('webLoadBalancerName'))]"
+      ],
+      "properties": {
+        "frontendIPConfiguration": {
+          "id": "[variables('frontEndIPConfigID')]"
+        },
+        "protocol": "tcp",
+        "frontendPort": "7000",
+        "backendPort": 3389,
+        "enableFloatingIP": false
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/loadBalancers/inboundNatRules",
+      "name": "[concat(variables('webLoadBalancerName'), '/', 'RDP-SQL')]",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "displayName": "sqlNatRules"
+      },
+      "dependsOn": [
+        "[concat('Microsoft.Network/loadBalancers/', variables('webLoadBalancerName'))]"
+      ],
+      "properties": {
+        "frontendIPConfiguration": {
+          "id": "[variables('frontEndIPConfigID')]"
+        },
+        "protocol": "tcp",
+        "frontendPort": "8000",
+        "backendPort": 3389,
+        "enableFloatingIP": false
+      }
+    },
+
+
+,
+        "[concat(variables('lbID'),'/inboundNatRules/RDP-GWAY')]"
+
+,
+        "[concat(variables('lbID'),'/inboundNatRules/RDP-SQL')]"
+
+
+            "osType": "Windows",
+            "image": {
+              "uri": "[concat(variables('osdiskLocation'), 'appsvr-osDisk.2439fa0e-ecc0-4ee1-8282-0afb6d162fc2.vhd')]"
+            },
+
+            "image": {
+              "uri": "[concat('http://',parameters('newStorageAccountName'),'.blob.core.windows.net/osdisks/osdisk0.vhd')]"
+            },
+
+
+cmdkey /add:Siebelshare.file.core.windows.net /user:Siebelshare /pass:Dt1qBLfRvcA9j7MspHAQk/itpSh4HVSUPXvAUkMGBNYUAvJt9cL3wu67h0q89mAum6/cl3lsBIgvH0gkX6lKnA==
+\\siebelshare.file.core.windows.net\share1

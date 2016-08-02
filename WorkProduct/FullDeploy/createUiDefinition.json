@@ -57,7 +57,9 @@
             "label": "DNS prefix",
             "toolTip": "This prefix will determine the public DNS name for the deployment.",
             "constraints": {
-              "required": true
+              "required": true,
+              "regex": "^[a-z][a-z0-9-]{1,48}[a-z0-9]$",
+              "validationMessage": "Domain name must be between 3 and 50 characters. Only alphanumeric characters and the '-' symbol are allowed."
             }
           }
         ]
